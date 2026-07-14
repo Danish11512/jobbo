@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jobbo — Architecture Diagrams</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --green: #3fb950;
+    --red: #f85149;
+    --orange: #d2991d;
+    --tab-active-bg: #1c2333;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Tab Bar ── */
+  #tab-bar {
+    display: flex;
+    align-items: center;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 8px;
+    min-height: 40px;
+    gap: 2px;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px 6px 0 0;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+    user-select: none;
+    position: relative;
+  }
+  .tab:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+  .tab.active {
+    color: var(--text);
+    background: var(--tab-active-bg);
+    border-color: var(--border);
+    border-bottom-color: transparent;
+  }
+  .tab .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .tab .dot.clean { background: var(--green); }
+  .tab .dot.dirty { background: var(--orange); }
+  .tab .dot.error { background: var(--red); }
+  .tab .close {
+    font-size: 14px;
+    line-height: 1;
+    opacity: 0;
+    margin-left: 4px;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: opacity 0.15s;
+  }
+  .tab:hover .close { opacity: 0.6; }
+  .tab .close:hover { opacity: 1; background: rgba(255,255,255,0.1); }
+  #add-tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px; height: 32px;
+    font-size: 18px;
+    color: var(--muted);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    margin-left: 4px;
+  }
+  #add-tab:hover { color: var(--text); background: rgba(255,255,255,0.08); border-color: var(--border); }
+
+  /* ── Main area ── */
+  #main {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+  }
+  .pane {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .pane-header {
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--muted);
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+  }
+  .pane.editor-pane { border-right: 1px solid var(--border); }
+  textarea.editor {
+    flex: 1;
+    background: var(--bg);
+    color: var(--text);
+    border: none;
+    padding: 16px;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Fira Code', monospace;
+    font-size: 13.5px;
+    line-height: 1.6;
+    resize: none;
+    outline: none;
+    tab-size: 2;
+    min-width: 0;
+  }
+  .preview-wrap {
+    flex: 1;
+    overflow: auto;
+    padding: 24px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    background: var(--bg);
+  }
+  .preview-wrap svg { max-width: 100%; height: auto; }
+
+  /* ── Status bar ── */
+  #status-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 16px;
+    font-size: 12px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+  }
+  #status-bar .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+  #status-bar .status-dot.ok { background: var(--green); }
+  #status-bar .status-dot.err { background: var(--red); }
+
+  /* ── Rename input ── */
+  .tab input.rename {
+    background: var(--bg);
+    border: 1px solid var(--accent);
+    color: var(--text);
+    font-size: 13px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    width: 100px;
+    outline: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="tab-bar">
+  <div id="tabs-container" style="display:flex;align-items:center;gap:2px;flex:1;min-width:0;"></div>
+  <button id="add-tab" title="New diagram (Cmd+N)">+</button>
+</div>
+
+<div id="main">
+  <div class="pane editor-pane">
+    <div class="pane-header">Mermaid Source</div>
+    <textarea class="editor" id="editor" spellcheck="false"></textarea>
+  </div>
+  <div class="pane">
+    <div class="pane-header">Preview</div>
+    <div class="preview-wrap" id="preview"></div>
+  </div>
+</div>
+
+<div id="status-bar">
+  <span class="status-dot ok" id="status-dot"></span>
+  <span id="status-text">Ready</span>
+</div>
+
+<script>
+mermaid.initialize({ startOnLoad: false, theme: 'dark', securityLevel: 'loose' });
+
+// ── State ──
+const STORAGE_KEY = 'jobbo-diagrams';
+let diagrams = [];       // { id, name, code }
+let activeId = null;
+let statuses = {};       // id -> 'ok'|'error'
+
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const data = JSON.parse(raw);
+      diagrams = data.diagrams || [];
+      activeId = data.activeId || (diagrams[0]?.id || null);
+      statuses = data.statuses || {};
+    }
+  } catch(e) {}
+  if (diagrams.length === 0) {
+    const id = genId();
+    diagrams = [{ id, name: 'Overview', code: 'graph TB\n    A[Start] --> B[End]' }];
+    activeId = id;
+    statuses = { [id]: 'ok' };
+    save();
+  }
+}
+function save() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ diagrams, activeId, statuses }));
+}
+function genId() { return 'd' + Date.now() + '_' + Math.random().toString(36).slice(2,6); }
+
+function activeDiagram() { return diagrams.find(d => d.id === activeId); }
+
+// ── DOM refs ──
+const tabBar = document.getElementById('tabs-container');
+const editor = document.getElementById('editor');
+const preview = document.getElementById('preview');
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+
+// ── Render tabs ──
+function renderTabs() {
+  tabBar.innerHTML = '';
+  diagrams.forEach(d => {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (d.id === activeId ? ' active' : '');
+    tab.dataset.id = d.id;
+
+    const dot = document.createElement('span');
+    const s = statuses[d.id] || 'ok';
+    dot.className = 'dot ' + (s === 'ok' ? 'clean' : s === 'dirty' ? 'dirty' : 'error');
+
+    const label = document.createElement('span');
+    label.textContent = d.name;
+
+    const close = document.createElement('span');
+    close.className = 'close';
+    close.textContent = '×';
+    close.title = 'Close tab';
+    close.addEventListener('click', e => { e.stopPropagation(); closeTab(d.id); });
+
+    tab.appendChild(dot);
+    tab.appendChild(label);
+    tab.appendChild(close);
+
+    tab.addEventListener('click', () => switchTab(d.id));
+    tab.addEventListener('dblclick', () => renameTab(d.id, tab));
+
+    tabBar.appendChild(tab);
+  });
+}
+
+// ── Switch tab ──
+function switchTab(id) {
+  if (id === activeId) return;
+  // flush current editor content
+  const cur = activeDiagram();
+  if (cur) cur.code = editor.value;
+  activeId = id;
+  const d = activeDiagram();
+  editor.value = d ? d.code : '';
+  renderTabs();
+  renderDiagram();
+  save();
+}
+
+// ── Close tab ──
+function closeTab(id) {
+  if (diagrams.length <= 1) return;
+  const idx = diagrams.findIndex(d => d.id === id);
+  diagrams.splice(idx, 1);
+  delete statuses[id];
+  if (activeId === id) {
+    activeId = diagrams[Math.min(idx, diagrams.length - 1)].id;
+    const d = activeDiagram();
+    editor.value = d ? d.code : '';
+  }
+  renderTabs();
+  renderDiagram();
+  save();
+}
+
+// ── Add tab ──
+function addTab(name, code) {
+  const id = genId();
+  diagrams.push({ id, name: name || 'Diagram ' + (diagrams.length + 1), code: code || 'graph TB\n    A[New] --> B[Diagram]' });
+  statuses[id] = 'ok';
+  // flush current
+  const cur = activeDiagram();
+  if (cur) cur.code = editor.value;
+  activeId = id;
+  editor.value = diagrams[diagrams.length - 1].code;
+  renderTabs();
+  renderDiagram();
+  save();
+  editor.focus();
+}
+
+// ── Rename tab ──
+function renameTab(id, tabEl) {
+  const d = diagrams.find(d => d.id === id);
+  if (!d) return;
+  const label = tabEl.querySelector('span:not(.dot):not(.close)');
+  const input = document.createElement('input');
+  input.className = 'rename';
+  input.value = d.name;
+  label.replaceWith(input);
+  input.focus();
+  input.select();
+  const commit = () => {
+    const newName = input.value.trim() || d.name;
+    d.name = newName;
+    renderTabs();
+    save();
+  };
+  input.addEventListener('blur', commit);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') { input.value = d.name; commit(); } });
+}
+
+// ── Render diagram ──
+let renderTimeout;
+function renderDiagram() {
+  clearTimeout(renderTimeout);
+  renderTimeout = setTimeout(async () => {
+    const d = activeDiagram();
+    if (!d) { preview.innerHTML = ''; return; }
+    const code = d.code.trim();
+    if (!code) { preview.innerHTML = ''; setStatus('ok'); statuses[d.id] = 'ok'; renderTabs(); save(); return; }
+    try {
+      const { svg } = await mermaid.render('mermaid-svg', code);
+      preview.innerHTML = svg;
+      setStatus('ok');
+      statuses[d.id] = 'ok';
+    } catch (e) {
+      preview.innerHTML = `<div style="color:var(--red);font-family:monospace;font-size:13px;white-space:pre-wrap;padding:16px;">${e.message || e}</div>`;
+      setStatus('error');
+      statuses[d.id] = 'error';
+    }
+    renderTabs();
+    save();
+  }, 300);
+}
+
+function setStatus(s) {
+  statusDot.className = 'status-dot ' + (s === 'ok' ? 'ok' : 'err');
+  statusText.textContent = s === 'ok' ? 'Rendered' : 'Syntax Error';
+}
+
+// ── Editor input ──
+editor.addEventListener('input', () => {
+  const d = activeDiagram();
+  if (d) {
+    d.code = editor.value;
+    statuses[d.id] = 'dirty';
+    renderTabs();
+  }
+  renderDiagram();
+});
+
+// ── Keyboard shortcuts ──
+document.addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+    e.preventDefault();
+    addTab();
+  }
+  if ((e.metaKey || e.ctrlKey) && e.key === 'w') {
+    e.preventDefault();
+    if (activeId) closeTab(activeId);
+  }
+  // Ctrl+Tab / Ctrl+Shift+Tab to cycle tabs
+  if (e.ctrlKey && e.key === 'Tab') {
+    e.preventDefault();
+    const idx = diagrams.findIndex(d => d.id === activeId);
+    const next = e.shiftKey
+      ? (idx - 1 + diagrams.length) % diagrams.length
+      : (idx + 1) % diagrams.length;
+    switchTab(diagrams[next].id);
+  }
+});
+
+// ── Init ──
+load();
+renderTabs();
+editor.value = activeDiagram()?.code || '';
+renderDiagram();
+</script>
+</body>
+</html>
