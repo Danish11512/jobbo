@@ -1,0 +1,30 @@
+# build output
+dist/
+
+# dependencies
+node_modules/
+
+# astro
+.astro/
+
+# codegraph (tecture)
+.codegraph/
+
+# tecture viewer state (commit drift.json, ignore layouts)
+architecture/.tecture/layouts/
+
+# database
+*.db
+*.db-journal
+
+# env
+.env
+.env.local
+.env.production
+
+# os
+.DS_Store
+Thumbs.db
+
+# logs
+*.log
